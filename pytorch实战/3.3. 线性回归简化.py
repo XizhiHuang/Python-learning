@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import random
 import torch.utils.data as Data
+import torch.nn as nn
 
 num_inputs = 2
 num_examples = 1000
@@ -46,65 +47,59 @@ for x_mini, y in data_iter:
     print(y)
     break
 
-#class LinearNet(nn.Module):
-    #def __init__(self,n_feature):
+
+# 利用nn定义模型
+class LinearNet(nn.Module):
+    def __init__(self, n_feature):
+        super(LinearNet, self).__init__()
+        self.linear = nn.Linear(n_feature, 1)
+
+    # 定义forward 前向传播
+    def forward(self, x):
+        y = self.linear(x)
+        return y
 
 
+net = LinearNet(num_inputs)
+print(net)
 
+for param in net.parameters():
+    print(param)
 
+# 初始化模型参数
+from torch.nn import init
 
+init.normal_(net.linear.weight, mean=0, std=0.01)
+init.constant_(net.linear.bias, val=0)
 
+# 定义损失函数
+loss = nn.MSELoss()
 
+# 定义优化算法
+import torch.optim as optim
 
-
-
+optimizer = optim.SGD(net.parameters(), lr=0.03)
+print(optimizer)
 
 """
-# 配合使用yield 可以使得x和y分别得到赋值       也可使用return，但是使用return就只能对x赋值
-for x_mini, y in read_data(batch_size, features, labels):
-    print(x_mini)
-    print(y)
 
-w = torch.tensor(np.random.normal(0, 0.01, (num_inputs, 1)), dtype=torch.float)
-b = torch.zeros(1, dtype=torch.float)
+# 调整学习率 设置为动态
+for param_group in optimizer.param_group:
+    param_group['lr']*=0.1  #学习率边为上一步的0.1
 
-w.requires_grad_(requires_grad=True)
-b.requires_grad_(requires_grad=True)
+"""
 
-
-# 构建线性回归函数
-def linreg(x, w, b):
-    return torch.mm(x, w) + b
-
-# 构建损失函数
-def squared_loss(y_predict, y):
-    return (y_predict - y.view(y_predict.size())) ** 2 / 2
-
-# 定义小批量随机梯度函数
-def sgd(params, lr, batch_size):
-    for param in params:
-        param.data -= lr * param.grad / batch_size
-
-
-lr = 0.01
-num_epochs = 10
-net = linreg
-loss = squared_loss
-
-for epoch in range(num_epochs):
-    for x_mini, y in read_data(batch_size, features, labels):
-        # l为小批量样本的损失
-        l = loss(net(x_mini, w, b), y).sum()
-        # 小批量的损失对模型参数求梯度
+# 训练模型
+num_epochs = 3
+for epoch in range(1, num_epochs + 1):
+    for x_mini, y in data_iter:
+        output = net(x_mini)
+        l = loss(output, y.view(-1, 1))
+        optimizer.zero_grad()
         l.backward()
-        sgd([w, b], lr, batch_size)
+        optimizer.step()  # 更新模型
+    print('epoch:%d,loss:%f' % (epoch, l.item()))
 
-        w.grad.data.zero_()
-        b.grad.data.zero_()
-    train_l = loss(net(features, w, b), labels)
-    # print(train_l.mean())
-    print('epoch:%s,loss:%f' % (epoch + 1, train_l.mean().item()))
-
-    print(true_w, '\n', w)
-    print(true_b, '\n', b)
-"""
+dense = net.linear
+print(true_w, dense.weight)
+print(true_b, dense.bias)

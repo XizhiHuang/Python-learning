@@ -6,7 +6,7 @@ import os
 
 
 filepath = r'D:\作业相关\地信工程\arcpy\201906-citibike-tripdata.csv'
-outpath = r'D:\作业相关\地信工程\arcpy'
+outpath = r'D:/作业相关/地信工程/arcpy/'
 
 data = pd.read_csv(filepath, na_values=['0'])
 df2 = data.copy()

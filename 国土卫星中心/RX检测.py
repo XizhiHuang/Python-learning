@@ -71,8 +71,9 @@ if __name__ == '__main__':
 # dataset = gdal.Open("Landsat_8_OLI_Rad_flaash.dat")  # 打开文件
 # dataset = gdal.Open(input.firstChild.data)
 # dataset = gdal.Open("D:\hypertest\\temp\\proj.dat")
-dataset = gdal.Open("D:\\RX检测\\hypertmp.dat")
-
+# dataset = gdal.Open("D:\\RX检测\\hypertmp.dat")
+dataset = gdal.Open("D:\\RX检测\\tmp.dat")
+start_time = time.time()
 # dir(dataset) 查看哪些方法可以用
 # 栅格矩阵的列数
 im_width = dataset.RasterXSize
@@ -228,12 +229,12 @@ win_in = 3
 # ##########################    RX算法部分    ##########################
 
 all_pixel_array_result_back = all_pixel_array_result
-a = all_pixel_array_result_back - all_pixel_array_result
+# a = all_pixel_array_result_back - all_pixel_array_result
 data = all_pixel_array_result_back
 
-a = im_height
-b = im_width
-c = im_bands
+# a = im_height
+# b = im_width
+# c = im_bands
 
 # 创建一个row*col临时数组
 temp_row = im_height
@@ -255,7 +256,10 @@ m = win_out * win_out
 
 # 对八边进行填充
 # 形成一个band*3row*3col的数组
-data_input = np.zeros((im_bands, 3 * im_height, 3 * im_width))
+# data_input = np.zeros((im_bands, 3 * im_height, 3 * im_width))
+data_input = np.zeros((im_bands, im_height + 2 * t_out, im_width + 2 * t_out))
+
+"""
 
 # 将原始数据填入中间
 for i in range(im_bands):
@@ -286,9 +290,37 @@ for i in range(im_bands):
     for j in range(2 * im_height, 3 * im_height):
         for k in range(0, 3 * im_width):
             data_input[i][j][k] = data_input[i][4 * im_height - j - 1][k]
+"""
 
+# 将原始数据填入中间
+for i in range(im_bands):
+    for j in range(t_out, t_out + im_height):
+        for k in range(t_out, t_out + im_width):
+            data_input[i][j][k] = data[i][j - im_height][k - im_width]
 
+# 将填入的数据向左镜像填充
+for i in range(im_bands):
+    for j in range(t_out, t_out + im_height):
+        for k in range(0, t_out):
+            data_input[i][j][k] = data[i][j - t_out][t_out - k - 1]
 
+# 将填入的数据向右镜像填充
+for i in range(im_bands):
+    for j in range(t_out, t_out + im_height):
+        for k in range(t_out + im_width, 2 * t_out + im_width):
+            data_input[i][j][k] = data[i][j - t_out][2 * t_out + im_width - k - 1]
+
+# 将上面填充的结果整体向上翻转镜像填充
+for i in range(im_bands):
+    for j in range(0, t_out):
+        for k in range(0, 2 * t_out + im_width):
+            data_input[i][j][k] = data_input[i][t_out + im_height - j - 1][k]
+
+# 将上面填充的结果整体向下翻转镜像填充
+for i in range(im_bands):
+    for j in range(t_out + im_height, 2 * t_out + im_height):
+        for k in range(0, 2 * t_out + im_width):
+            data_input[i][j][k] = data_input[i][t_out + 2 * im_height - j - 1][k]
 
 block = data_input[:, 0:3, 0:3]
 # block = data_input[:, 10 - t_out: 10 + t_out + 1, 10 - t_out: 10 + t_out + 1]
@@ -307,14 +339,15 @@ block = data_input[:, 0:3, 0:3]
 
 # 遍历循环计算相关的rx系数
 for i in range(im_bands):
-    for j in range(im_width, 2 * im_width):
-        for k in range(im_height, 2 * im_height):
-            # block_copy = data_input.copy()
-            # block = block_copy[:, k - t_out:k + t_out + 1, j - t_out:j + t_out + 1]
-            block = data_input[:, k - t_out:k + t_out + 1, j - t_out:j + t_out + 1]
-            # data_input_copy = data_input.copy()
-            # y = data_input_copy[:, k, j]
-            y = data_input[:, k, j]
+    for j in range(t_out, t_out + im_width):
+        for k in range(t_out, t_out + im_height):
+            block_copy = data_input.copy()
+            block = block_copy[:, k - t_out:k + t_out + 1, j - t_out:j + t_out + 1]
+            data_input_copy = data_input.copy()
+            y = data_input_copy[:, k, j]
+
+            #block = data_input[:, k - t_out:k + t_out + 1, j - t_out:j + t_out + 1]
+            #y = data_input[:, k, j]
             y_out = y.reshape(1, im_bands)
             # 内窗口处band*（3*3）区域内赋为非数值元素NaN
             block[:, t_out - t_in:t_out + t_in + 1, t_out - t_in:t_out + t_in + 1] = np.NaN
@@ -354,7 +387,8 @@ rx_output_data = rx_result
 driver = gdal.GetDriverByName('GTiff')
 # 设置输出路径及其输出文件名
 # output_filename = output.firstChild.data
-output_filename = 'D:\\RX检测\\hyper_tmp_result_812.tif'
+# output_filename = 'D:\\RX检测\\hyper_tmp_result_812.tif'
+output_filename = 'D:\\RX检测\\tmp_result_812rere.tif'
 # 设置创建的栅格数据格式
 output_data_gdal_tif = driver.Create(output_filename, im_width, im_height, 1, gdal.GDT_Float32)
 # 写入仿射变换参数
@@ -364,3 +398,6 @@ output_data_gdal_tif.SetProjection(im_proj)
 # 写入data数据
 output_data_gdal_tif.GetRasterBand(1).WriteArray(rx_output_data)
 print('----------')
+endtime = time.time() - start_time
+print(endtime)
+del output_data_gdal_tif

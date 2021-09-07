@@ -74,3 +74,4 @@ for i in range(band):
             # 划分成九宫格，中间直接执行block操作，其余八个部分根据不同的情况做镜像操作
             # 左上角两侧同时镜像操作
             if j<t_out and k<t_out:
+                break

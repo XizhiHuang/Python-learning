@@ -4,9 +4,7 @@ import numpy as np
 from PIL import Image
 import glob
 # import SimpleITK as sitk
-from torch import optim
 import torch.utils.data
-import torch
 import torch.nn.functional as F
 
 import torch.nn
@@ -14,7 +12,7 @@ import torchvision
 import matplotlib.pyplot as plt
 import natsort
 from torch.utils.data.sampler import SubsetRandomSampler
-from loader_data import Images_Dataset, Images_Dataset_folder
+from loader_data import Images_Dataset_folder
 import torchsummary
 # from torch.utils.tensorboard import SummaryWriter
 # from tensorboardX import SummaryWriter
